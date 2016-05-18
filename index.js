@@ -1,87 +1,63 @@
 var express = require ('express');
 var app = express();
-var bodyParser = require ('body-parser');
-var grades= require ('./grades.json');
-var jsonQuery = require ('json-query');
+var mongoose = require ('mongoose');
+var Student = require ('./student');
+
+mongoose.connect ('mongodb://talkohen:password@ds013202.mlab.com:13202/students');
+var conn = mongoose.connection;
+var response = ' ';
+
+
+conn.on ('error', function (err) {
+    console.log ('connection error' + err);
+
+});
+
+conn.once('open',function(){
+    find (app);
+    console.log('opened a connection to database'); 
+});
+
 var port = process.env.PORT || 3000;
-
-app.use (bodyParser.json());
-app.use (bodyParser.urlencoded ({extended:true}));
-
-
-app.get ('/:userid', function (req,res,next) {
-
-    var user= req.params.userid;
-
-// iterate over each element in the array
-for (var i = 0; i < grades.length; i++){
-  // look for the entry with a matching `code` value
-  if (grades[i].id == user){
-res.json (grades[i]);
-console.log ("sending json with the id : "+user);
-
-  }
-
-}
-
-req.next ();
-    
-});
-
-app.get ('/:year', function (req,res) {
-
-    console.log ("Starting search by year function...");
-    var year= req.params.year;
-    var json = '' ;
-    var counter =0;
-
-// iterate over each element in the array
-for (var i = 0; i < grades.length; i++){
-  // look for the entry with a matching `code` value
-  if (grades[i].year == year&&counter>1) 
-  {
-    console.log ("found another object in year : "+ year);
-    json+= ','+JSON.stringify(grades[i]);
-  }
-
-  else if (grades[i].year == year&&counter==1){
-    console.log ("found another object in year : "+ year);
-    temp=json;
-    json='['+temp+',';
-    json+= JSON.stringify(grades[i]);
-    counter++;
-  }
- else if (grades[i].year == year&&counter==0){
-    console.log ("found first object in year : "+ year);
-    json+= JSON.stringify(grades[i]);
-    counter++;
- }
-
-}
-
-if (counter >1) {
-json+=']';
-}
+app.listen( process.env.PORT || 3000 );
+console.log ("listening on port " +port);
 
 
- res.send (json);
-    
+function find (app) {
+
+app.get ('/id/:userid', function (req,res) {
+
+var user= req.params.userid;
+console.log('finding by id...');
+
+ Student.find({id : user},function(err,student){
+            if(err) throw err;
+            res.json(student);
+        });
 });
 
 
-app.all ('*', function (req,res,next) {
+app.get ('/year/:year', function (req,res) {
 
-   console.log ("sending json with all grades...");
-    req.next ();
+var year= req.params.year;
+console.log('finding by year...');
+
+ Student.find({year : year},function(err,student){
+            if(err) throw err;
+            res.json(student);
+        });
 });
+
 
 app.get ('/', function (req,res) {
 
-res.json (grades);
+   Student.find({},function(err,student){
+            if(err) throw err;
+            res.json(student);
+        });
+
+    console.log ('sending all students...')
 
 });
 
-
-
-app.listen( process.env.PORT || 3000 );
-console.log ("listening on port " +port);
+}
